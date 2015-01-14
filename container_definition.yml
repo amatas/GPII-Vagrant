@@ -1,0 +1,26 @@
+---
+
+containers:
+
+## Template of container ##
+#  - app_name: preferences_server
+#    image: gpii/preferences_server
+#    ports: 
+#      9000:9000
+#    links:
+#      preferences_server:preferences_server
+#    env_variables:
+#      - "NODE_ENV=preferencesServer.production"
+
+  - app_name: stmm
+    image: gpii/stmm
+
+  - app_name: flow-manager
+    image: gpii/flow-manager
+#    ports: 
+#      8078:8078
+#    links:
+#      rbmm-java:rbmm-java
+#    env_variables:
+#      - "NODE_ENV=production"
+#      - "RBMM_JAVA=rbmm-java:8080"

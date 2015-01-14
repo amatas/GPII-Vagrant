@@ -1,0 +1,21 @@
+---
+
+- name: Deployment playbook
+  hosts: localhost
+  vars_files:
+    - container_definition.yml
+
+  tasks:
+    - name: Pull the latest version of containers
+      raw: docker pull {{item.image}}
+      with_items: containers
+
+    - name: Deploy docker containers
+      docker: >
+        state=running
+        name={{item.app_name}}
+        image={{item.image}}
+        links={{item.links|default(omit)}}
+        ports={{item.ports|default(omit)}}
+        env="{{item.env_variables|default(omit)}}"
+      with_items: containers
