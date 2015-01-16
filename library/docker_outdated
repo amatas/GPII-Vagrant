@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+DOCUMENTATION = '''
+---
+module: docker_outdated
+version_added: "1.8"
+author: Alfredo Matas (amatas@gmail.com)
+short_description: check if a container is outdated
+description:
+    - Check the source image of a container against the Docker image list.
+options:
+  image_name:
+    description: 
+      - the name of the image to compare
+    required: True
+    default: null
+    aliases: []
+  container_name:
+    description: 
+      - the name of the container to compare
+    required: True
+    default: null
+    aliases: []
+'''
+
+EXAMPLES = '''
+---
+    - name: Check outdated containers
+      docker_outdated: image_name={{item.image}} container_name={{item.name}}
+      register: outdated_containers
+      with_items: containers
+
+    - name: Destroy outdated containers
+      docker: state=absent name={{item.stdout}}
+      when: item.changed
+      with_items: outdated_containers.results
+'''
+
+
+from ansible.module_utils.basic import *
+import datetime
+import commands
+
+def _check_outdated(module, image_name, container_name):
+
+    startd = datetime.datetime.now()
+    command_image = 'docker inspect --format "{{{{ .Id }}}}" {image_name}'
+    command_container = 'docker inspect --format "{{{{ .Image }}}}" {container_name}'
+    
+    rc_img, out_img, err_img = module.run_command(command_image.format(image_name=image_name))
+    if out_img is None:
+        out_img = ''
+    if err_img is None:
+        err_img = ''
+
+    rc_ctnr, out_ctnr, err_ctnr = module.run_command(command_container.format(container_name=container_name))
+    if out_ctnr is None:
+        out_ctnr = ''
+    if err_ctnr is None:
+        err_ctnr = ''
+
+    endd = datetime.datetime.now()
+    delta = endd - startd
+
+    outdated = False
+    if not rc_img and not rc_ctnr and out_img.rstrip("\r\n") != out_ctnr.rstrip("\r\n"):
+        outdated = True
+
+    module.exit_json(
+        cmd=command_image.format(image_name=image_name) + ' ' + command_container.format(container_name=container_name),
+        stdout=container_name,
+        stderr=err_img.rstrip("\r\n") + ' ' + err_ctnr.rstrip("\r\n"),
+        rc=0,
+        start=str(startd),
+        end=str(endd),
+        delta=str(delta),
+        changed=outdated
+    )
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            image_name=dict(required=True),
+            container_name=dict(required=True)
+        ),
+        supports_check_mode=True,
+        mutually_exclusive=[]
+    )
+
+    params = module.params
+
+    if type(params['image_name']) is str and type(params['container_name']) is str:
+        _check_outdated(module, params['image_name'], params['container_name'])
+    else:
+        module.fail_json(msg='Incorrect params ' + str(type(params['name'])))
+
+main()
