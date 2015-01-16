@@ -2,6 +2,7 @@
 
 - name: Deployment playbook
   hosts: localhost
+  gather_facts: yes
   vars_files:
     - container_definition.yml
 
@@ -11,12 +12,16 @@
       with_items: containers
 
     - name: Check outdated containers
-      docker_outdated: image_name={{item.image}} container_name={{item.app_name}}
+      docker_outdated: >
+        image_name={{item.image}} 
+        container_name={{item.app_name}}
       register: outdated_containers
       with_items: containers
 
     - name: Destroy outdated containers
-      shell: echo "state=absent name={{item.stdout}}"
+      docker: >
+        state=absent 
+        name={{item.stdout}}
       when: item.changed
       with_items: outdated_containers.results
 
@@ -29,4 +34,3 @@
         ports={{item.ports|default(omit)}}
         env="{{item.env_variables|default(omit)}}"
       with_items: containers
-
