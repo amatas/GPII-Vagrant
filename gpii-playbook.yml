@@ -10,6 +10,16 @@
       raw: docker pull {{item.image}}
       with_items: containers
 
+    - name: Check outdated containers
+      docker_outdated: image_name={{item.image}} container_name={{item.app_name}}
+      register: outdated_containers
+      with_items: containers
+
+    - name: Destroy outdated containers
+      shell: echo "state=absent name={{item.stdout}}"
+      when: item.changed
+      with_items: outdated_containers.results
+
     - name: Deploy docker containers
       docker: >
         state=running
@@ -19,3 +29,4 @@
         ports={{item.ports|default(omit)}}
         env="{{item.env_variables|default(omit)}}"
       with_items: containers
+
