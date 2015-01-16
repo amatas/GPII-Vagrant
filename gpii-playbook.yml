@@ -3,12 +3,15 @@
 - name: Deployment playbook
   hosts: localhost
   gather_facts: yes
+  vars:
+    - application: all
   vars_files:
     - container_definition.yml
 
   tasks:
     - name: Pull the latest version of containers
       raw: docker pull {{item.image}}
+      when: application == "all" or item.app_name == application
       with_items: containers
 
     - name: Check outdated containers
@@ -16,6 +19,7 @@
         image_name={{item.image}} 
         container_name={{item.app_name}}
       register: outdated_containers
+      when: application == "all" or item.app_name == application
       with_items: containers
 
     - name: Destroy outdated containers
@@ -33,4 +37,5 @@
         links={{item.links|default(omit)}}
         ports={{item.ports|default(omit)}}
         env="{{item.env_variables|default(omit)}}"
+      when: application == "all" or item.app_name == application
       with_items: containers
